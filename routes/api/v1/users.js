@@ -11,7 +11,11 @@ var router = express.Router();
 var User = require('../../../models/user'); /** @REVIEW discuss model location */
 
 router.post('/', function(req, res, next) {
-  var user = new User(req.body || req.params); // create new user from POST
+  var user = new User({
+    email: req.body.email,
+    password: req.body.password,
+    role: req.body.role
+  }); // create new user from POST
 
   // attempt to save the user and return status
   user.save(function(err) {

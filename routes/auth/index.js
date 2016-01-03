@@ -16,8 +16,7 @@ router.post('/', function(req, res, next) {
     if (!user) { // no user found => fail
       res.json({ success: false, message: 'Auth failed.' });
     } else if (user) {
-      if (user.password === req.body.password) {
-        /** @TODO hash and salt user.password to compare against DB */
+      if (user.verifyPasswordSync(req.body.password)) {
         /** @TODO generate and return JWT */
         res.json({ success: true, message: 'Auth succeeded' });
       } else { // incorrect password => fail

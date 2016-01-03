@@ -11,6 +11,9 @@
     "debug": "~2.2.0",
     "express": "~4.13.1",
     "mongoose": "^4.3.4",
-    "morgan": "~1.6.1"
+    "mongoose-bcrypt": "^1.2.3",
+    "mongoose-unique-validator": "^0.6.2",
+    "morgan": "~1.6.1",
+    "node-uuid": "^1.4.7"
   }
 }
