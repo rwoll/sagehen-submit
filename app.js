@@ -8,7 +8,7 @@
 var config       = require('./config');
 var express      = require('express');
 var path         = require('path');
-var logger       = require('morgan');
+// var logger       = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser   = require('body-parser');
 var db           = require('./db');
@@ -24,7 +24,7 @@ var app = express();
 
 // ========== PRE-ROUTER MIDDLEWARE ============================================
 /** @REVIEW ensure all of these express generated middleware are necessary. */
-app.use(logger('dev'));
+// app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());

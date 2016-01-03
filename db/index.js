@@ -12,6 +12,7 @@
 
 var mongoose = require('mongoose');
 var config   = require('../config');
+var debug = require('debug')('sagehen-submit:server');
 
 mongoose.connect(config.DB);
 
@@ -22,7 +23,7 @@ mongoose.connection.on('error', function(err) {
 });
 
 mongoose.connection.on('connected', function() {
-  console.log('MongoDB is up and running at %s', config.DB);
+  debug('Connected to MongoDB');
 });
 
 /** @TODO 'disconnected' event handler */

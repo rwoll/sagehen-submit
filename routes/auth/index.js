@@ -16,7 +16,9 @@ router.post('/', function(req, res, next) {
     if (err) return next(err);
 
     if (!user) { // no user found => fail
-      res.json({ success: false, message: 'Auth failed.' });
+      return res.status(401).json({
+        error: { status: 401, message: 'Auth failed' }
+      });
     } else if (user) {
       if (user.verifyPasswordSync(req.body.password)) {
 
