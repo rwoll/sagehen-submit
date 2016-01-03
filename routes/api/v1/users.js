@@ -20,15 +20,16 @@ router.post('/', function(req, res, next) {
   // attempt to save the user and return status
   user.save(function(err) {
     if (err) {
-      /** @REVIEW discuss HTTP status code of failed validation */
       if (err.name == 'ValidationError') {
-        res.json({ success: false,  errors: err.errors });
+        return res.status(400).json({
+          error: { status: 400, message: err.errors }
+        });
       } else {
         return next(err);
       }
     } else {
       /** @TODO prevent password field from being returned */
-      res.json({ success: true, user: user });
+      return res.json({ user: user });
     }
   });
 });
