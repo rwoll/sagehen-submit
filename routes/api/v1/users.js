@@ -1,7 +1,6 @@
 /**
  * Handle user related actions including adding users and view profiles.
  *
- * @TODO add athorization middleware at top-level to ensure proper access
  *
  * @author Ross A. Wollman
  */
