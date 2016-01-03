@@ -12,6 +12,7 @@ var logger       = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser   = require('body-parser');
 var db           = require('./db');
+var enforceRoles = require('./middleware/auth');
 
 // ========== ROUTERS ==========================================================
 var routes = require('./routes/index');
@@ -31,7 +32,7 @@ app.use(cookieParser());
 // ========== ROUTING HANDLERS =================================================
 app.use('/', routes);
 app.use('/auth', auth);
-app.use('/api/v1', api);
+app.use('/api/v1', enforceRoles(['PROF']), api);
 
 // ========== TOP-LEVEL ERROR HANDLERS =========================================
 // catch 404 and forward to error handler
