@@ -28,11 +28,13 @@ router.post('/', function(req, res, next) {
         { expiresIn: config.API_EXP },
         function(token) {
             // send token to client
-            res.json({ success: true, token: token });
+            res.json({ token: token });
         });
-        
+
       } else { // incorrect password => fail
-        res.json({ success: false, message: 'Auth failed.' });
+        return res.status(401).json({
+          error: { status: 401, message: 'Auth failed' }
+        });
       }
     }
   });
