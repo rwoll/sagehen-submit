@@ -1,7 +1,14 @@
+/**
+ * Unit tests for the auth API endpoint.
+ *
+ * @author Ross A. Wollman
+ */
+ 
 var app     = require('../app');
 var http    = require('http');
 var request = require('supertest');
-var should  = require('should');
+var conn    = require('../db');
+var User    = require('../models/user');
 
 var port = 3000;
 app.set('port', port);
@@ -11,10 +18,23 @@ describe("POST /auth", function() {
 
   // spawn new server before each test
   before(function(done) {
-    /** @TODO drop and then setup database before each test */
-    server = http.createServer(app).listen(port);
-    server.on('listening', function() {
-      done();
+    conn.on('connected', function() {
+      conn.db.dropDatabase(function(err) {
+        if (err) throw err;
+
+        // add test user
+        var user = new User({
+          email: 'prof@test',
+          password: 'testpass'
+        }).save(function(err) {
+          if (err) throw err;
+
+          server = http.createServer(app).listen(port);
+          server.on('listening', function() {
+            done();
+          });
+        });
+      });
     });
   });
 
@@ -77,7 +97,7 @@ describe("POST /auth", function() {
   });
 
   describe('Successful Authentication Attempts', function() {
-    it('should should return a JWT', function(done){
+    it('should return a JWT token', function(done){
       request(server)
         .post('/auth')
         .type('form')

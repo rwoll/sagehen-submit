@@ -27,3 +27,5 @@ mongoose.connection.on('connected', function() {
 });
 
 /** @TODO 'disconnected' event handler */
+
+module.exports = mongoose.connection;
