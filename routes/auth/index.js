@@ -24,6 +24,7 @@ router.post('/', function(req, res, next) {
 
         // create and sign token
         jwt.sign({
+          _id: user._id,
           email: user.email,
           role: user.role },
         config.API_SECRET,
