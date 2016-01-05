@@ -1,6 +1,7 @@
 /**
  * Defines a user schema.
  *
+ * @todo determine appropriate indexes
  * @author Ross A. Wollman
  */
 

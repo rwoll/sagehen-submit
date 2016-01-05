@@ -3,7 +3,7 @@
  *
  * @author Ross A. Wollman
  */
- 
+
 var app     = require('../app');
 var http    = require('http');
 var request = require('supertest');
@@ -25,7 +25,8 @@ describe("POST /auth", function() {
         // add test user
         var user = new User({
           email: 'prof@test',
-          password: 'testpass'
+          password: 'testpass',
+          role: 'PROF'
         }).save(function(err) {
           if (err) throw err;
 
