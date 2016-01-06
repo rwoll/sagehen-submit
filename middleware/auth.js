@@ -5,7 +5,7 @@
  * @author Ross A. Wollman
  */
 
-var jwt    = require('jsonwebtoken');
+var jwt = require('jsonwebtoken');
 var config = require('../config');
 
 /**
@@ -14,8 +14,8 @@ var config = require('../config');
  *
  * @param {string[]} roles list of allowed roles for this endpoint
  */
-function enforceRoles(roles) {
-  return function(req, res, next) {
+function enforceRoles (roles) {
+  return function (req, res, next) {
     // check for authorization header
     if (!req.headers.authorization) {
       return res.status(401).json({
@@ -24,7 +24,7 @@ function enforceRoles(roles) {
       });
     }
 
-    jwt.verify(req.headers.authorization, config.API_SECRET, function(err, decoded) {
+    jwt.verify(req.headers.authorization, config.API_SECRET, function (err, decoded) {
       if (err) {
         if (err.name === 'TokenExpiredError') {
           return res.status(401).json({

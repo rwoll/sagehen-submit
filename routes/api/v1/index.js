@@ -14,7 +14,7 @@ var users = require('./users');
 router.use('/users', users);
 
 // GET /
-router.get('/', function(req, res, next) {
+router.get('/', function (req, res, next) {
   res.json({ message: 'Welcome to the API!'});
 });
 

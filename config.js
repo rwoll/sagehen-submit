@@ -8,7 +8,7 @@
  * @author Ross A. Wollman
  */
 
- var uuid = require('node-uuid');
+var uuid = require('node-uuid');
 
 module.exports = {
   DB: process.env.DB || 'mongodb://localhost:27017/sagesubmit',

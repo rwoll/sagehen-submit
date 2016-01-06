@@ -5,21 +5,21 @@
  * @author Ross A. Wollman
  */
 
-var mongoose   = require('mongoose');
-var Schema     = mongoose.Schema;
+var mongoose = require('mongoose');
+var Schema = mongoose.Schema;
 var uValidator = require('mongoose-unique-validator');
-var mBcrypt    = require('mongoose-bcrypt');
-var config     = require('../config');
-var roles      = require('./roles');
+var mBcrypt = require('mongoose-bcrypt');
+var config = require('../config');
+var roles = require('./roles');
 
 // ========== User Schema ======================================================
 var UserSchema = new Schema({
-  email:    { type: String,  required: true, trim: true, lowercase: true, unique: true },
+  email: { type: String,  required: true, trim: true, lowercase: true, unique: true },
   password: { type: String,  required: true, bcrypt: true },
   verified: { type: Boolean, required: true, default: false },
-  active:   { type: Boolean, required: true, default: false },
-  role:     { type: String,  required: true, default: roles.STU, enum: [roles.STU, roles.PROF, roles.TA] },
-  created:  { type: Date,    required: true, default: Date.now }
+  active: { type: Boolean, required: true, default: false },
+  role: { type: String,  required: true, default: roles.STU, enum: [roles.STU, roles.PROF, roles.TA] },
+  created: { type: Date,    required: true, default: Date.now }
 });
 
 // ========== Mongoose Plugins =================================================

@@ -11,18 +11,18 @@
  */
 
 var mongoose = require('mongoose');
-var config   = require('../config');
+var config = require('../config');
 var debug = require('debug')('sagehen-submit:server');
 
 mongoose.connect(config.DB);
 
 // ========== CONNECTION HANDLERS ==============================================
-mongoose.connection.on('error', function(err) {
+mongoose.connection.on('error', function (err) {
   console.log('There was an error connecting to MongoDB at %s', config.DB);
   throw(err); // throw error to prevent rest of application from runnning
 });
 
-mongoose.connection.on('connected', function() {
+mongoose.connection.on('connected', function () {
   debug('Connected to MongoDB');
 });
 
