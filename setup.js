@@ -7,7 +7,7 @@ var user = new User({
   role: 'PROF' // admin-like role
 });
 
-user.save(function(err) {
+user.save(function (err) {
   if (err) throw err;
   console.log('Successfully seeded database!\n');
   console.log(user);

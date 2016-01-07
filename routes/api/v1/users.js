@@ -9,7 +9,7 @@ var express = require('express');
 var router = express.Router();
 var User = require('../../../models/user'); /** @REVIEW discuss model location */
 
-router.post('/', function(req, res, next) {
+router.post('/', function (req, res, next) {
   var user = new User({
     email: req.body.email,
     password: req.body.password,
@@ -17,7 +17,7 @@ router.post('/', function(req, res, next) {
   }); // create new user from POST
 
   // attempt to save the user and return status
-  user.save(function(err) {
+  user.save(function (err) {
     if (err) {
       if (err.name == 'ValidationError') {
         return res.status(400).json({

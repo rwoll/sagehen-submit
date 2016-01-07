@@ -6,13 +6,13 @@
  */
 
 var express = require('express');
-var router  = express.Router();
-var User    = require('../../models/user');
-var jwt     = require('jsonwebtoken');
-var config  = require('../../config');
+var router = express.Router();
+var User = require('../../models/user');
+var jwt = require('jsonwebtoken');
+var config = require('../../config');
 
-router.post('/', function(req, res, next) {
-  User.findOne({ email: req.body.email }, function(err, user) {
+router.post('/', function (req, res, next) {
+  User.findOne({ email: req.body.email }, function (err, user) {
     if (err) return next(err);
 
     if (!user) { // no user found => fail
@@ -21,18 +21,17 @@ router.post('/', function(req, res, next) {
       });
     } else if (user) {
       if (user.verifyPasswordSync(req.body.password)) {
-
         // create and sign token
         jwt.sign({
           _id: user._id,
           email: user.email,
-          role: user.role },
-        config.API_SECRET,
-        { expiresIn: config.API_EXP },
-        function(token) {
+        role: user.role },
+          config.API_SECRET,
+          { expiresIn: config.API_EXP },
+          function (token) {
             // send token to client
             res.json({ token: token });
-        });
+          });
 
       } else { // incorrect password => fail
         return res.status(401).json({
