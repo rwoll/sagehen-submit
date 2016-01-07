@@ -1,4 +1,4 @@
-module.exports = function (requst, server, username, password, cb) {
+module.exports = function (request, server, username, password, cb) {
   request(server)
     .post('/auth')
     .type('form')

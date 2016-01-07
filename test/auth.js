@@ -62,20 +62,6 @@ describe('JWT Authorization Endpoint', function () {
         });
     });
 
-    it('should fail without correct username', function (done) {
-      request(server)
-        .post('/auth')
-        .type('form')
-        .send({ email: 'pro@test', password: 'testpass'})
-        .expect('Content-Type', /json/)
-        .expect(401)
-        .end(function (err, res) {
-          res.body.should.have.property('error');
-          res.body.should.not.have.property('token');
-          done();
-        });
-    });
-
     it("should fail with malicious 'true' string", function (done) {
       request(server)
         .post('/auth')

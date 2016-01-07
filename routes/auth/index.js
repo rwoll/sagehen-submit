@@ -20,24 +20,25 @@ router.post('/', function (req, res, next) {
         error: { status: 401, message: 'Auth failed' }
       });
     } else if (user) {
-      if (user.verifyPasswordSync(req.body.password)) {
-        // create and sign token
-        jwt.sign({
-          _id: user._id,
-          email: user.email,
-        role: user.role },
-          config.API_SECRET,
-          { expiresIn: config.API_EXP },
-          function (token) {
-            // send token to client
-            res.json({ token: token });
+      user.verifyPassword(req.body.password, function (err, valid) {
+        if (err) return next(err);
+        if (valid) {
+          jwt.sign({
+            _id: user._id,
+            email: user.email,
+          role: user.role },
+            config.API_SECRET,
+            { expiresIn: config.API_EXP },
+            function (token) {
+              // send token to client
+              return res.json({ token: token });
+            });
+        } else {
+          return res.status(401).json({
+            error: { status: 401, message: 'Auth failed' }
           });
-
-      } else { // incorrect password => fail
-        return res.status(401).json({
-          error: { status: 401, message: 'Auth failed' }
-        });
-      }
+        }
+      });
     }
   });
 });
