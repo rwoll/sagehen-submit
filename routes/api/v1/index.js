@@ -6,12 +6,13 @@
 
 var express = require('express');
 var router = express.Router();
+var roleLimit = require('../../../middleware/roleLimit');
 
 // ========== ROUTERS ==========================================================
 var users = require('./users');
 
 // ========== ROUTING HANDLERS =================================================
-router.use('/users', users);
+router.use('/users', roleLimit(['PROF']), users);
 
 // GET /
 router.get('/', function (req, res, next) {

@@ -12,7 +12,7 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var db = require('./db');
-var enforceRoles = require('./middleware/auth');
+var authCheck = require('./middleware/authCheck');
 
 // ========== ROUTERS ==========================================================
 var routes = require('./routes/index');
@@ -32,7 +32,7 @@ app.use(cookieParser());
 // ========== ROUTING HANDLERS =================================================
 app.use('/', routes);
 app.use('/auth', auth);
-app.use('/api/v1', enforceRoles(['PROF']), api);
+app.use('/api/v1', authCheck(), api);
 
 // ========== TOP-LEVEL ERROR HANDLERS =========================================
 // catch 404 and forward to error handler

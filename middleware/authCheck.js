@@ -12,9 +12,8 @@ var config = require('../config');
  * Middleware that checks if user is allowed to access an endpoint by JWT role
  * lookup. If successful, calls next function and sets req.user object.
  *
- * @param {string[]} roles list of allowed roles for this endpoint
  */
-function enforceRoles (roles) {
+function authRequired () {
   return function (req, res, next) {
     // check for authorization header
     if (!req.headers.authorization) {
@@ -37,21 +36,16 @@ function enforceRoles (roles) {
         }
       }
 
-      // no errors yet => check for valid role
-      if (!decoded.role || roles.indexOf(decoded.role) === -1) {
-        return res.status(403).json({
-          error: { status: 403, message: 'Not authorized.' }
-        });
-      } else {
-        // save relevant info on req.user object
-        req.user = {
-          email: decoded.email,
-          role: decoded.role
-        };
-      }
+      // set user object which can be used in later middleware
+      req.user = {
+        _id: decoded._id,
+        email: decoded.email,
+        role: decoded.role
+      };
+
       next();
     });
   };
 }
 
-module.exports = enforceRoles;
+module.exports = authRequired;
