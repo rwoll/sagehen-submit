@@ -11,6 +11,12 @@ var users = {
     email: 'stu@test',
     password: 'testpass',
     role: 'STU'
+  },
+
+  ta: {
+    email: 'ta@test',
+    password: 'testpass',
+    role: 'TA'
   }
 };
 
@@ -23,7 +29,11 @@ var addUsers = function (done) {
   prof.save(function (err) {
     if (err) throw err;
     stu.save(function (err) {
-      done();
+      if (err) throw err;
+      ta.save(function (err) {
+        if (err) throw err;
+        done();
+      });
     });
   });
 };

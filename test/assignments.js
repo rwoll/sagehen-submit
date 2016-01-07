@@ -20,8 +20,7 @@ describe('Assignments Endpoint Operations', function () {
   var server;
   var tokens;
 
-  before(function (done) {
-    this.timeout(5000); // this takes a while due to decoding :(
+  beforeEach(function (done) {
     dbutils.resetDB(conn, function () {
       server = require('../testutils/server')(function () {
         getToken(request, server, 'prof@test', 'testpass', function (profToken) {
@@ -37,7 +36,7 @@ describe('Assignments Endpoint Operations', function () {
     });
   });
 
-  after(function (done) {
+  afterEach(function (done) {
     dbutils.dropDB(conn, function () {
       server.close(done);
     });
