@@ -16,6 +16,13 @@ var validAssignment =
   reqFiles: [{name: 'test', lang: 'javascript', type: 'plain'}]
 };
 
+var invalidAssignment =
+{
+  title: 'Silver Dollar Coin',
+  duedate: '1453006399000',
+  reqFiles: ''
+};
+
 describe('Assignments Endpoint Operations', function () {
   var server;
   var tokens;
@@ -53,6 +60,20 @@ describe('Assignments Endpoint Operations', function () {
         .expect(200)
         .end(function (err, res) {
           res.body.should.have.property('assignment');
+          done();
+        });
+    });
+
+    it('should fail to add an assignment without files', function (done) {
+      request(server)
+        .post('/api/v1/assignments')
+        .set('Authorization', tokens.prof)
+        .type('json')
+        .send(invalidAssignment)
+        .expect('Content-Type', /json/)
+        .expect(400)
+        .end(function (err, res) {
+          res.body.should.not.have.property('assignment');
           done();
         });
     });

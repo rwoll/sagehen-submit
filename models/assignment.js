@@ -27,4 +27,9 @@ var AsgtSchema = new Schema({
   submissions: { type: [{ type: Schema.Types.ObjectId, ref: 'Submission' }], index: true}
 });
 
+// validate that reqfiles array is not empty (and does not contain an empty string)
+AsgtSchema.path('reqFiles').validate(function (value) {
+  return value != 0 && value !== null; // intential use of weak equals comp to 0
+}, "'reqFiles' cannot be left empty");
+
 module.exports = mongoose.model('Assignment', AsgtSchema);
