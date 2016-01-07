@@ -1,57 +1,51 @@
 /**
- * Unit tests for the auth API endpoint.
+ * Unit tests for the authorization endpoint used for JWT acquisition.
  *
  * @author Ross A. Wollman
  */
 
-var app = require('../app');
-var http = require('http');
-var request = require('supertest');
 var conn = require('../db');
-var User = require('../models/user');
+var request = require('supertest');
+var dbutils = require('../testutils/dbutils');
 
-var port = 3000;
-app.set('port', port);
-
-describe('POST /auth', function () {
+describe('JWT Authorization Endpoint', function () {
   var server;
 
-  // spawn new server before each test
-  before(function (done) {
-    conn.on('connected', function () {
-      conn.db.dropDatabase(function (err) {
-        if (err) throw err;
-
-        // add test user
-        var user = new User({
-          email: 'prof@test',
-          password: 'testpass',
-          role: 'PROF'
-        }).save(function (err) {
-          if (err) throw err;
-
-          server = http.createServer(app).listen(port);
-          server.on('listening', function () {
-            done();
-          });
-        });
-      });
+  beforeEach(function (done) {
+    dbutils.resetDB(conn, function () {
+      server = require('../testutils/server')(done);
     });
   });
 
-  // close server each time
+  afterEach(function (done) {
+    server.close(done);
+  });
+
   after(function (done) {
-    server.close();
-    done();
+    dbutils.dropDB(conn, done);
   });
 
   describe('Bad Authentication Attempts', function () {
-    it('should fail without email or password', function (done) {
+    it('should fail without username or password', function (done) {
       request(server)
         .post('/auth')
         .set('Accept', 'application/json')
         .expect('Content-Type', /json/)
         .expect(401, done);
+    });
+
+    it('should fail without correct username', function (done) {
+      request(server)
+        .post('/auth')
+        .type('form')
+        .send({ email: 'pro@test', password: 'testpass'})
+        .expect('Content-Type', /json/)
+        .expect(401)
+        .end(function (err, res) {
+          res.body.should.have.property('error');
+          res.body.should.not.have.property('token');
+          done();
+        });
     });
 
     it('should fail without correct password', function (done) {

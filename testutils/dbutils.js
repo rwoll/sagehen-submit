@@ -11,12 +11,6 @@ var users = {
     email: 'stu@test',
     password: 'testpass',
     role: 'STU'
-  },
-
-  ta: {
-    email: 'ta@test',
-    password: 'testpass',
-    role: 'TA'
   }
 };
 
@@ -26,15 +20,10 @@ var addUsers = function (done) {
   var prof = new User(users.prof);
   var ta = new User(users.ta);
 
-  // save the users in series
-  stu.save(function (err) {
+  prof.save(function (err) {
     if (err) throw err;
-    prof.save(function (err) {
-      if (err) throw err;
-      ta.save(function (err) {
-        if (err) throw err;
-        done();
-      });
+    stu.save(function (err) {
+      done();
     });
   });
 };
@@ -51,7 +40,8 @@ var dropDB = function (conn, done) {
   if (conn.readyState === 1) { // already connected to the database somewhere
     dropIt(conn, done);
   } else {
-    conn.on('connected', function () {
+    conn.on('connected', function (err) {
+      if (err) throw err;
       dropIt(conn, done);
     });
   }
@@ -63,9 +53,9 @@ var resetDB = function (conn, done) {
   });
 };
 
-module.exports({
+module.exports = {
   users: users,
   addUsers: addUsers,
   dropDB: dropDB,
   resetDB: resetDB
-});
+};
