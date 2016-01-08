@@ -8,6 +8,7 @@ var conn = require('../db');
 var request = require('supertest');
 var dbutils = require('../testutils/dbutils');
 var getToken = require('../testutils/gettoken');
+var Assignment = require('../models/assignment');
 
 var validAssignment =
 {
@@ -88,6 +89,28 @@ describe('Assignments Endpoint Operations', function () {
         .send(validAssignment)
         .expect('Content-Type', /json/)
         .expect(403, done);
+    });
+
+    it('should successfully turn in an assignment', function (done) {
+      // create the assignment
+      var asgt = new Assignment(validAssignment).save(function (err, asgt) {
+        if (err) throw err;
+        var validSubmission = {
+          notes: 'hello, world!'
+        };
+
+        request(server)
+          .post('/api/v1/assignments/' + asgt._id)
+          .set('Authorization', tokens.stu)
+          .type('json')
+          .send(validSubmission)
+          .expect('Content-Type', /json/)
+          .expect(200)
+          .end(function (err, res) {
+            if (err) throw err;
+            done();
+          });
+      });
     });
   });
 });
