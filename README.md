@@ -27,19 +27,77 @@ Sagehen Submit
 
 ## API Documentation
 
-*While the eventual goal will be to have a complete RESTful API, the following
-list includes (documented) implemented endpoints.*
+> **The following documentation may not refer to currently implemented
+> functionality, but rather the desired functionality in the future.**
 
-| Method | Endpoint | Usage | Returns	| Auth? |
-|--------|----------|-------|---------|-------|
-|`POST`  | `/auth`  | Obtain a JWT for API calls | `token` ||
-|`POST`  | `/api/v1/users` | Creates a user | `user` | `PROF` |
+### Assignments
+*Resource contains the details of a homework or project assignment like the
+required files, duedate, and a list of submissions.*
 
-> Ensure data is encoded in requests!
+| Usage                                 | Method | Endpoint                    |
+|---------------------------------------|--------|-----------------------------|
+| Get a list of all assignments.        |`GET`   |`/assignments`               |
+| Create a new assignment.              |`POST`  |`/assignments`               |
+| Get an individual assignment          |`GET`   |`/assignments/{aID}`         |
+| Delete an assignment.                 |`DELETE`|`/assignments/{aID}`         |
+| Update an assignment.                 |`PUT`   |`/assignments/{aID}`         |
+
+#### Assignment Description
+- `_id`: unique assignment identifier
+- `title`: name of the assignment
+- `duedate`: due date of the assignment
+- `reqFiles`: list of required files
+- `submissions`: list of submissions (rather, references to a submission via an `_id`)
+
+### Submissions
+*A resource that contains a student's solution/code to an assignment*
+
+| Usage                                 | Method | Endpoint                    |
+|---------------------------------------|--------|-----------------------------|
+| Get a list of submissions.            |`GET`   |`/assignments/{aID}/submissions`|
+| Make an original submission.          |`POST`  |`/assignments/{aID}/submissions`|
+| Get an individual submission.         |`GET`   |`/assignments/{aID}/submissions/{sID}`|
+| Delete an individual submission.      |`DELETE`|`/assignments/{aID}/submissions/{sID}`|
+| Update an individual submission.      |`PUT`   |`/assignments/{aID}/submissions/{sID}`|
+
+#### Submission Description
+- `_id`: unique identifier
+- `owner`: owner/original submitter (reference to a User's `_id`)
+- `collaborators`: list of collaborators as User's `_id`s
+- `assignment`: reference to an Assignment's `_id` that this submission corresponds to
+- `timestamp`: original submission time or time of last revision
+- `files`: list of File resources
+- `notes`: student notes on their submission
+
+### Users
+*A resource that represents either a professor, teaching assistant, or student.*
+
+| Usage                                 | Method | Endpoint                    |
+|---------------------------------------|--------|-----------------------------|
+| Get a list of all users.              |`GET`   |`/users`                     |
+| Create a new user.                    |`POST`  |`/users`                     |
+| Get a user profile.                   |`GET`   |`/users/{uID}`               |
+| Update a user profile.                |`PUT`   |`/users/{uID}`               |
+| Mark student as enrolled in the class.|`POST`  |`/users/{uID}/enroll`        |
+| Get a list of submissions by a user.  |`GET`   |`/users/{uID}/submissions`   |
+| Get a list of assignments with submission status for a user.|`GET`|`/users/{uID}/assignments`|
+
+#### User Description
+- `_id`: unique identifier
+- `email`: primary email address
+- `password`: hash of password
+- `verified`: status of User's primary email address
+- `active`: status of User in the course
+- `created`: date of User added
+
+## Auth Tokens
+
+All API calls will require an `AUTH` token which will be used to authorize different
+actions.
 
 ### Getting an Auth token
 
-#### Example Request:
+##### Example Request:
 
 ```bash
 curl --request POST \
@@ -49,7 +107,7 @@ curl --request POST \
   --data 'email=prof%40test&password=testpass'
 ```
 
-#### Example Response
+##### Example Response
 
 ```bash
 {
@@ -57,32 +115,5 @@ curl --request POST \
 }
 ```
 
-
-### Adding Users
-
-#### Example Request
-
-```bash
-curl --request POST \
-  --url http://localhost:3000/api/v1/users \
-  --header 'authorization: <YOU-JWT-Token>' \
-  --header 'cache-control: no-cache' \
-  --header 'content-type: application/x-www-form-urlencoded' \
-  --data 'email=hghghgcgtest&password=true&role=STU'
-```
-
-#### Example Response
-
-```bash
-{
-    "user": {
-        "__v": 0,
-        "_id": "56898e54e407812e7391a42f",
-        "active": false,
-        "created": "2016-01-03T21:10:44.235Z",
-        "email": "hghghgcgtest",
-        "role": "STU",
-        "verified": false
-    }
-}
-```
+The returned token can then be used in subsequent API calls. It will have an
+expiry time, so it will need to be refreshed.
