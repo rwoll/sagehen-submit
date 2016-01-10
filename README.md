@@ -89,6 +89,7 @@ required files, duedate, and a list of submissions.*
 - `verified`: status of User's primary email address
 - `active`: status of User in the course
 - `created`: date of User added
+- `role`: Users role (`PROF || TA || STU`)
 
 ## Auth Tokens
 
