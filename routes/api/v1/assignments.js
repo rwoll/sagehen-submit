@@ -6,72 +6,91 @@
 
 var express = require('express');
 var router = express.Router();
-var Asgt = require('../../../models/assignment');
-var Sub = require('../../../models/submission');
-var roleLimit = require('../../../middleware/rolelimit');
+var Assignment = require('../../../models/assignment');
+var Submission = require('../../../models/submission');
+var limit = require('../../../middleware/rolelimit');
 
-router
-  .post('/', roleLimit(['PROF']), function (req, res, next) {
-    var asgt = new Asgt({
-      title: req.body.title,
-      duedate: req.body.duedate,
-      reqFiles: req.body.reqFiles
-    });
+// ========== Route Handlers ===================================================
+var listAssignments = function (req, res, next) {
+  Assignment.find(function (err, assignments) {
+    if (err) return next(err);
+    return res.json({ assignments: assignments });
+  });
+};
 
-    asgt.save(function (err) {
-      if (err) {
-        if (err.name === 'ValidationError') {
-          return res.status(400).json({
-            error: { status: 400, message: err.errors }
-          });
-        } else {
-          return next(err);
-        }
-      } else {
-        return res.json({ assignment: asgt });
-      }
-    });
-  })
+var createAssignment = function (req, res, next) {
+  new Assignment({
+    title: req.body.title,
+    duedate: req.body.duedate,
+    reqFiles: req.body.reqFiles
+  }).save(function (err, assignment) {
+    if (err) return next(err);
+    return res.json({ assignment: assignment });
+  });
+};
 
-  .get('/', function (req, res, next) {
-    if (req.user.role === 'PROF') {
-      // return all assignments
-      Asgt.find({}, function (err, asgts) {
-        if (err) return next(err);
-        return res.json({ assignments: asgts });
-      });
-    } else if (req.user.role === 'STU') {
-      Asgt.find({ submissions: req.user._id }, function (err, asgts) {
-        if (err) return next(err);
-        return res.json({ submittedAssignments: asgts });
-      });
-    // return list of completed assignments and list of incomplete assignments
-    } else {
-      return res.status(400).json({
-        error: { status: 400, message: 'No fucntionality for this group' }
+var listAssignment = function (req, res, next) {
+  return res.json({ assignment: req.user.assignment });
+};
+
+var addSubmission = function (req, res, next) {
+  new Submission({
+    owner: req.user._id,
+    assignment: req.user.assignment._id,
+    notes: req.body.notes
+  }).save(function (err, sub) {
+    if (err) return next(err);
+    return res.json({ assignment: req.user.assignment, submission: sub });
+  });
+};
+
+// ========== PARAMETER VALIDATION =============================================
+router.param('assignmentID', function (req, res, next, aID) {
+  Assignment.findById(aID, function (err, assignment) {
+    if (err) return next(err);
+
+    if (!assignment) {
+      return res.status(404).json({
+        error: { status: 404, message: 'Bad aID.'}
       });
     }
-  })
 
-  .post('/:id', roleLimit(['STU']), function (req, res, next) {
-    // create new submission for the student
-    var sub = new Sub({
-      owner: req.user._id,
-      assignment: req.params.id, /** @REVIEW examine if the save of this object will validate this id! */
-      notes: req.body.notes
-    });
-
-    sub.save(function (err) {
-      if (err) return next(err);
-      // if no error, add this submission to the assignment (they will reference eachother)
-      Asgt.findById(req.params.id, function (err, asgt) {
-        asgt.submissions.push(sub._id);
-        asgt.save(function (err) {
-          if (err) return next(err);
-          return res.json({ submission: sub });
-        });
-      });
-    });
+    req.user.assignment = assignment;
+    return next();
   });
+});
+
+router.param('submissionID', function (req, res, next, sID) {
+  Submission.findById(sID, function (err, submission) {
+    if (err) return next(err);
+
+    if (!assignment) {
+      return res.status(404).json({
+        error: { status: 404, message: 'Bad aID.'}
+      });
+    }
+
+    if (submission.owner === req.user._id || req.user.role === 'PROF') {
+      req.user.submission = submission;
+      return next();
+    } else {
+      return res.status(403).json({
+        error: {status: 403, message: 'Unauthorized.'}
+      });
+    }
+  });
+});
+
+// ========== ROUTING ==========================================================
+router
+  .get('/', listAssignments)
+  .post('/', limit(['PROF']), createAssignment)
+  .get('/:assignmentID/', listAssignment);
+  // .put('/:aID', limit(['PROF']), updateAssignment)
+  // .delete('/:aID', limit(['PROF']), deleteAssignment);
+
+// Submission Routing
+router
+  .post('/:assignmentID/submissions/', limit(['STU']), addSubmission);
 
 module.exports = router;

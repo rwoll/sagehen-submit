@@ -18,7 +18,7 @@ var SubSchema = new Schema({
   assignment: { type: Schema.Types.ObjectId, required: true, ref: 'Assignment' },
   timestamp: { type: Date, required: true, default: Date.now, index: true },
   // files: { type: [BareFileSchema], required: true, index: true },
-  notes: { type: String } // ,
+  notes: { type: String, required: true } // ,
 // complete: { type: Boolean, default: false }
 });
 

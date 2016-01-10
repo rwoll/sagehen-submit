@@ -16,6 +16,15 @@ var assignments = require('./assignments');
 router.use('/users', roleLimit(['PROF']), users);
 router.use('/assignments', assignments);
 
+// ========== VALIDATION ERROR HANDLER =========================================
+router.use(function (err, req, res, next) {
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({error: { status: 400, message: err.errors }});
+  }
+  console.error(err);
+  return next(err); // pass the error on
+});
+
 // GET /
 router.get('/', function (req, res, next) {
   res.json({ message: 'Welcome to the API!'});

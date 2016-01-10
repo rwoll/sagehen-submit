@@ -3,7 +3,7 @@
  *
  * @author Ross A. Wollman
  */
-
+var ENDPOINT = '/api/v1/assignments';
 var conn = require('../db');
 var request = require('supertest');
 var dbutils = require('../testutils/dbutils');
@@ -24,7 +24,14 @@ var invalidAssignment =
   reqFiles: ''
 };
 
-describe('Assignments Endpoint Operations', function () {
+var validSubmission =
+{
+  notes: 'a really valid submission'
+};
+
+var invalidSubmission = {};
+
+describe('Assignment Endpoint', function () {
   var server;
   var tokens;
 
@@ -50,10 +57,36 @@ describe('Assignments Endpoint Operations', function () {
     });
   });
 
-  describe('PROF assignment attempts', function () {
-    it('should return an assignment', function (done) {
+  describe('GET ' + ENDPOINT, function () {
+    it('returns a list of assignments when role:PROF', function (done) {
       request(server)
-        .post('/api/v1/assignments')
+        .get(ENDPOINT)
+        .set('Authorization', tokens.prof)
+        .expect(200)
+        .end(function (err, res) {
+          if (err) throw err;
+          res.body.should.have.property('assignments');
+          done();
+        });
+    });
+
+    it('returns a list of assignments when role:STU', function (done) {
+      request(server)
+        .get(ENDPOINT)
+        .set('Authorization', tokens.stu)
+        .expect(200)
+        .end(function (err, res) {
+          if (err) throw err;
+          res.body.should.have.property('assignments');
+          done();
+        });
+    });
+  });
+
+  describe('POST ' + ENDPOINT, function () {
+    it('creates and returns an assignment when role:PROF', function (done) {
+      request(server)
+        .post(ENDPOINT)
         .set('Authorization', tokens.prof)
         .type('json')
         .send(validAssignment)
@@ -65,7 +98,21 @@ describe('Assignments Endpoint Operations', function () {
         });
     });
 
-    it('should fail to add an assignment without files', function (done) {
+    it('fails to create an assignment when role:STU', function (done) {
+      request(server)
+        .post(ENDPOINT)
+        .set('Authorization', tokens.stu)
+        .type('json')
+        .send(validAssignment)
+        .expect('Content-Type', /json/)
+        .expect(403)
+        .end(function (err, res) {
+          res.body.should.not.have.property('assignment');
+          done();
+        });
+    });
+
+    it('fails to create an assignment without reqFiles', function (done) {
       request(server)
         .post('/api/v1/assignments')
         .set('Authorization', tokens.prof)
@@ -80,36 +127,74 @@ describe('Assignments Endpoint Operations', function () {
     });
   });
 
-  describe('STU assignment attempts', function () {
-    it('should not create or return an assignment', function (done) {
+  describe('Individual Assignments', function () {
+    var assignmentID;
+
+    beforeEach(function (done) {
       request(server)
-        .post('/api/v1/assignments')
-        .set('Authorization', tokens.stu)
+        .post(ENDPOINT)
+        .set('Authorization', tokens.prof)
         .type('json')
         .send(validAssignment)
-        .expect('Content-Type', /json/)
-        .expect(403, done);
+        .end(function (err, res) {
+          assignmentID = res.body.assignment._id;
+          done();
+        });
     });
 
-    it('should successfully turn in an assignment', function (done) {
-      // create the assignment
-      var asgt = new Assignment(validAssignment).save(function (err, asgt) {
-        if (err) throw err;
-        var validSubmission = {
-          notes: 'hello, world!'
-        };
-
+    describe('GET ' + ENDPOINT + '/{aID}', function () {
+      it('returns an individual assignment with valid aID', function (done) {
         request(server)
-          .post('/api/v1/assignments/' + asgt._id)
-          .set('Authorization', tokens.stu)
-          .type('json')
-          .send(validSubmission)
-          .expect('Content-Type', /json/)
+          .get(ENDPOINT + '/' + assignmentID)
+          .set('Authorization', tokens.prof)
           .expect(200)
           .end(function (err, res) {
             if (err) throw err;
+            res.body.should.have.property('assignment');
             done();
           });
+      });
+    });
+
+    describe('Assignment Submissions', function () {
+      describe('POST ' + ENDPOINT + '/{aID}/submissions', function () {
+        it('fails to create a submission when role:PROF', function (done) {
+          request(server)
+            .post(ENDPOINT + '/' + assignmentID + '/submissions')
+            .set('Authorization', tokens.prof)
+            .type('json')
+            .send(validAssignment)
+            .expect(403)
+            .end(done);
+        });
+
+        it('creates and returns a submission when role:STU', function (done) {
+          request(server)
+            .post(ENDPOINT + '/' + assignmentID + '/submissions')
+            .set('Authorization', tokens.stu)
+            .type('json')
+            .send(validSubmission)
+            .expect(200)
+            .end(function (err, res) {
+              if (err) throw err;
+              res.body.should.have.property('submission');
+              done();
+            });
+        });
+
+        it('fails to add an invalid submission when role:STU', function (done) {
+          request(server)
+            .post(ENDPOINT + '/' + assignmentID + '/submissions')
+            .set('Authorization', tokens.stu)
+            .type('json')
+            .send({})
+            .expect(400)
+            .end(function (err, res) {
+              if (err) throw err;
+              res.body.should.not.have.property('submission');
+              done();
+            });
+        });
       });
     });
   });

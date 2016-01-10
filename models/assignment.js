@@ -24,7 +24,7 @@ var AsgtSchema = new Schema({
   title: { type: String, required: true },
   duedate: { type: Date, required: true, default: nextWeek, index: true },
   reqFiles: { type: [FileSchema], required: true},
-  submissions: { type: [{ type: Schema.Types.ObjectId, ref: 'Submission' }], index: true}
+// submissions: { type: [{ type: Schema.Types.ObjectId, ref: 'Submission' }], index: true}
 });
 
 // validate that reqfiles array is not empty (and does not contain an empty string)

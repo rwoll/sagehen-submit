@@ -1,5 +1,6 @@
 var User = require('../models/user');
 
+// fictitious users
 var users = {
   prof: {
     email: 'prof@test',
@@ -17,7 +18,25 @@ var users = {
     email: 'ta@test',
     password: 'testpass',
     role: 'TA'
-  }
+  },
+
+  students: [
+    {
+      email: 'stu2@test',
+      password: 'testpass',
+      role: 'STU'
+    },
+    {
+      email: 'stu3@test',
+      password: 'testpass',
+      role: 'STU'
+    },
+    {
+      email: 'stu4@test',
+      password: 'testpass',
+      role: 'STU'
+    }
+  ]
 };
 
 var addUsers = function (done) {
