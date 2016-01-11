@@ -25,7 +25,10 @@ var createAssignment = function (req, res, next) {
     reqFiles: req.body.reqFiles
   }).save(function (err, assignment) {
     if (err) return next(err);
-    return res.json({ assignment: assignment });
+
+    assignment.unescapeFilenames(function () {
+      return res.json({  assignment: assignment  });
+    });
   });
 };
 
@@ -37,6 +40,7 @@ var addSubmission = function (req, res, next) {
   new Submission({
     owner: req.user._id,
     assignment: req.user.assignment._id,
+    files: req.body.files,
     notes: req.body.notes
   }).save(function (err, sub) {
     if (err) return next(err);

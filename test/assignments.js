@@ -14,7 +14,10 @@ var validAssignment =
 {
   title: 'Silver Dollar Coin',
   duedate: '1453006399000',
-  reqFiles: [{name: 'test', lang: 'javascript', type: 'plain'}]
+  reqFiles: {
+    'test.py': {name: 'test', lang: 'javascript', type: 'plain'},
+    'test2.py': {name: 'test', lang: 'javascript', type: 'plain'}
+  }
 };
 
 var invalidAssignment =
@@ -26,7 +29,13 @@ var invalidAssignment =
 
 var validSubmission =
 {
-  notes: 'a really valid submission'
+  notes: 'a really valid submission',
+  files: [
+    {
+      name: 'someFile',
+      content: 'someContent'
+    }
+  ]
 };
 
 var invalidSubmission = {};
@@ -93,6 +102,8 @@ describe('Assignment Endpoint', function () {
         .expect('Content-Type', /json/)
         .expect(200)
         .end(function (err, res) {
+          console.log(res.body);
+
           res.body.should.have.property('assignment');
           done();
         });

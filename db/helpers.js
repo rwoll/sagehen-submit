@@ -3,20 +3,22 @@
  * Resolved with the information at:
  * - http://stackoverflow.com/questions/12397118/mongodb-dot-in-key-name
  * - https://docs.mongodb.org/v3.0/faq/developers/
+ *
+ * @todo add unit tests and resolve unescape
  */
 
 var escape = function (badMongoKey) {
   return badMongoKey
-    .replace('\\', '\\\\') // escape the escape character
-    .replace('$', '\\U+FF04') // escape $ operator
-    .replace('.', '\\U+FF0E'); // escape . (dot) notation
+    .replace(/\\/g, '\\\\') // escape the escape character
+    .replace(/\$/g, '\uff04') // escape $ operator
+    .replace(/\./g, '\uff0e'); // escape . (dot) notation
 };
 
 var unescape = function (escapedKey) {
   return escapedKey
-    .replace('\\U+FF0E', '.') // unescape . (dot) notation
-    .replace('\\U+FF04', '$') // unescape $ operator
-    .replace('\\\\', '\\'); // unescape the escape character
+    .replace(/\uff0e/g, '.') // unescape . (dot) notation
+    .replace(/\uff04/g, '$') // unescape $ operator
+    .replace(/\\\\/g, '\\'); // unescape the escape character
 };
 
 module.exports = {
