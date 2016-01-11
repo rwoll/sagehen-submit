@@ -26,13 +26,12 @@ var FileSchema = new Schema({
 var AsgtSchema = new Schema({
   title: { type: String, required: true },
   duedate: { type: Date, required: true, default: nextWeek, index: true },
-  reqFiles: { type: {}, required: true},
+  reqFiles: { type: {}, required: true}
 });
 
 AsgtSchema.methods.escapeFilenames = function (cb) {
   if (!Array.isArray(this.reqFiles) && typeof this.reqFiles === 'object') {
     // loop through keys and escape them
-    var processed = 0;
     for (var rawFileName in this.reqFiles) {
       processed++;
       if (this.reqFiles.hasOwnProperty(rawFileName)) {

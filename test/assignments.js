@@ -30,12 +30,10 @@ var invalidAssignment =
 var validSubmission =
 {
   notes: 'a really valid submission',
-  files: [
-    {
-      name: 'someFile',
-      content: 'someContent'
-    }
-  ]
+  reqFiles: {
+    'test.py': { content: 'ad' },
+    'test2.py': { content: 'ad3' }
+  }
 };
 
 var invalidSubmission = {};
@@ -102,8 +100,6 @@ describe('Assignment Endpoint', function () {
         .expect('Content-Type', /json/)
         .expect(200)
         .end(function (err, res) {
-          console.log(res.body);
-
           res.body.should.have.property('assignment');
           done();
         });

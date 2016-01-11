@@ -26,7 +26,7 @@ var createAssignment = function (req, res, next) {
   }).save(function (err, assignment) {
     if (err) return next(err);
 
-    assignment.unescapeFilenames(function () {
+    return assignment.unescapeFilenames(function () {
       return res.json({  assignment: assignment  });
     });
   });
@@ -40,11 +40,14 @@ var addSubmission = function (req, res, next) {
   new Submission({
     owner: req.user._id,
     assignment: req.user.assignment._id,
-    files: req.body.files,
+    reqFiles: req.body.reqFiles,
     notes: req.body.notes
   }).save(function (err, sub) {
+    console.log('ASSIGNMENT\n ' + JSON.stringify(req.user.assignment));
     if (err) return next(err);
-    return res.json({ assignment: req.user.assignment, submission: sub });
+    return sub.unescapeFilenames(function () {
+      return res.json({ submission: sub });
+    });
   });
 };
 
@@ -60,7 +63,7 @@ router.param('assignmentID', function (req, res, next, aID) {
     }
 
     req.user.assignment = assignment;
-    return next();
+    return assignment.unescapeFilenames(next);
   });
 });
 
