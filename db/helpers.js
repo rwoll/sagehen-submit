@@ -16,7 +16,7 @@
  * @param  {String} badMongoKey An unescaped version of the key.
  * @return {String}             Returns an escaped version of the key.
  */
-var escape = function (badMongoKey) {
+var escapeKey = function (badMongoKey) {
   return badMongoKey
     .replace(/\\/g, '\\\\') // escape the escape character
     .replace(/\$/g, '\uff04') // escape $ operator
@@ -29,12 +29,39 @@ var escape = function (badMongoKey) {
  * @param  {String} escapedKey An escaped version of the key.
  * @return {String}            Returns an unescaped version of the key.
  */
-var unescape = function (escapedKey) {
+var unescapeKey = function (escapedKey) {
   return escapedKey
     .replace(/\uff0e/g, '.') // unescape . (dot) notation
     .replace(/\uff04/g, '$') // unescape $ operator
     .replace(/\\\\/g, '\\'); // unescape the escape character
 };
+
+var isHashLike = function (obj) {
+  return !Array.isArray(obj) && typeof obj === 'object';
+};
+
+var convertRawFileObject = function (defaultSchema) {
+  return (function (rawfiles) {
+    this.files = {};
+
+    if (isHashLike(rawfiles)) {
+      for (var rawFilename in rawfiles) {
+        if (rawfiles.hasOwnProperty(rawFilename)) {
+          // escape file name and add to set
+          var escaped = escapeKey(rawFilename);
+          try {
+            this.files[escaped] = new defaultSchema(rawfiles[rawFilename]);
+          } catch (err) {
+            this.files[escaped] = new defaultSchema();
+          }
+          this.files[escaped].filename = rawFilename;
+        }
+      }
+    }
+
+    return this.files;
+  }
+  );};
 
 /**
  * Take an Object that represents a dictionary file structure and with escaped
@@ -44,7 +71,7 @@ var unescape = function (escapedKey) {
  * @return {Object}     Returns the unescaped dictionary Object.
  */
 var unescapeFileObject = function (obj) {
-  if (!Array.isArray(obj) && typeof obj === 'object') {
+  if (isHashLike(obj)) {
     for (var escapedName in obj) {
       if (obj.hasOwnProperty(escapedName)) {
         if (!obj[escapedName].hasOwnProperty('filename')) {
@@ -63,9 +90,11 @@ var unescapeFileObject = function (obj) {
 
 module.exports = {
   /** Escape a bad key */
-  escape: escape,
+  escapeKey: escapeKey,
   /** Unescape a bad key. */
-  unescape: unescape,
+  unescapeKey: unescapeKey,
   /** Unescape a "file object"-ish */
-  unescapeFileObject: unescapeFileObject
+  unescapeFileObject: unescapeFileObject,
+  convertRawFileObject: convertRawFileObject,
+  isHashLike: isHashLike
 };
