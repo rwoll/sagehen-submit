@@ -1,0 +1,202 @@
+#!/usr/bin/env python
+
+# A CLI wrapper for the API
+# This is a proof of concept and has not been tested!
+# @author Ross A. Wollman
+
+import click
+import getpass
+import requests
+import os
+
+from datetime import datetime
+
+# Common endpoints for the application
+ENDPOINTS = {
+    'base': 'http://localhost:3000',
+    'others': {
+        'auth': '/auth',
+        'api': {
+            'assignments': '/api/v1/assignments',
+            'assignments_single': '/api/v1/assignments/assignmentID',
+            'submissions': '/api/v1/assignments/assignmentID/submissions',
+            'submissions_single': '/api/v1/assignments/assignmentID/submissions/submissionID',
+            'users': '/api/v1/users'
+        }
+    }
+}
+
+
+# Overall CLI command group
+@click.group()
+def cli():
+    pass
+
+
+def error_print(text, code):
+    """ Generic error printer.
+
+    :param text: error message
+    :param code: status code of error
+    """
+    click.echo(click.style(text, fg='red', bold=True), nl=False)
+    click.echo(click.style(code, bold=True))
+
+
+def make_url(*args, **kwargs):
+    """ Compose a URL for a call to the API.
+
+    This has NO exception handling, therefore it is VERY fragile!
+    """
+    url = ENDPOINTS['base']
+    next_path = ENDPOINTS['others']
+    for arg in args:
+        next_path = next_path[arg]
+
+    for key, value in kwargs.iteritems():
+        next_path = next_path.replace(str(key), str(value))
+
+    return url + next_path
+
+
+def get_token():
+    """ Prompt a user for their credentials. """
+    click.echo(click.style('Please login with your credentials.', fg='yellow', bold=True))
+
+    attempts = 0
+    while attempts < 3:
+        username = click.prompt(click.style('Username', bold=True))
+        password = click.prompt(click.style('Password', bold=True), hide_input=True)
+        creds = {'email': username, 'password': password}
+        auth_resp = requests.post(make_url('auth'), json=creds)
+
+        if auth_resp.status_code == requests.codes.ok:
+            return username, auth_resp.json()['token']
+        else:
+            click.echo(click.style('Bad combination. Please try again!', bold=True, fg='red'))
+            attempts += 1
+            if not click.confirm(click.style('Try again?', fg='blue', bold=True)):
+                break
+
+    return None, None
+
+
+def check_for_creds(force_refresh=False):
+    """ Check for credentials file and store them if needed. """
+    home = os.path.expanduser('~')
+    cred_path = os.path.join(home, '.sagehen-submit')
+    cred_file = os.path.join(cred_path, 'sage-creds')
+
+    if not os.path.exists(cred_path):
+        os.makedirs(cred_path)
+
+    if not os.path.exists(cred_file) or force_refresh:
+        username, token = get_token()
+        if username and token:
+            with open(cred_file, 'w') as creds:
+                creds.write('%s\n%s' % (username, token))
+                click.echo('Hello, ', nl=False)
+                click.echo(click.style(username, bold=True), nl=False)
+                click.echo('!')
+                return (username, token)
+
+    with open(cred_file, 'r') as creds:
+        return creds.readline(), creds.readline()
+
+
+@click.command(help='Force a new login to the service.')
+def login():
+    check_for_creds(True)
+
+
+@click.command(help='Add a new user to the system.')
+@click.option('--new_username', help='New users username.',
+              prompt='\x1b[1mNew Username\x1b[0m')
+@click.option('--new_password', help='New user\'s password.', prompt='\x1b[1mNew Password\x1b[0m', hide_input=True)
+@click.option('--new_role', help='New user\'s role.', prompt='\x1b[1mNew Role\x1b[0m',
+              type=click.Choice(['STU', 'PROF', 'TA']))
+def add_user(new_username, new_password, new_role):
+    """ Add a user to the system. """
+
+    my_token = check_for_creds()[1]
+    payload = {'email': new_username, 'password': new_password, 'role': new_role}
+    headers = {'authorization': my_token, 'content-type': 'application/json'}
+    response = requests.request('POST', make_url('api', 'users'), json=payload, headers=headers)
+
+    if response.status_code == requests.codes.created:
+        click.echo(click.style('Successfully added new user: ', fg='green', bold=True), nl=False)
+        click.echo(click.style(response.json()['user']['email'], bold=True))
+    else:
+        error_print('Failed to create user: ', str(response.status_code))
+
+
+@click.command(help='List assignments.')
+def list_assignments():
+    """ Get a list of assignments """
+    my_username, my_token = check_for_creds()
+    headers = {'authorization': my_token, 'content-type': 'application/json'}
+    response = requests.request('GET', make_url('api', 'assignments'), headers=headers)
+    click.echo(click.style('%-40s | %-10s | %s' % ('Assignment', 'Duedate', 'ID'), bold=True))
+    click.echo('-' * 80)
+    if response.status_code == requests.codes.ok:
+        for assignment in response.json()['assignments']:
+            the_date = datetime.strptime(assignment['duedate'], '%Y-%m-%dT%H:%M:%S.%fZ')
+            click.echo('%-40s | %-10s | %s' % (assignment['title'], the_date.strftime('%D'), assignment['_id']))
+
+    else:
+        error_print('Something went wrong: ', str(response.status_code))
+
+
+def get_file_from_user(file_name):
+    """ Prompt a user for a file and read into memory. """
+    prompt_words = 'Path to ' + click.style(file_name, bold=True)
+    file_path = click.prompt(prompt_words).strip()
+    if os.path.isfile(file_path):
+        with open(file_path, 'r') as file_data:
+            return file_data.read()
+    else:
+        raise Exception('Invalid file path!')
+
+
+@click.command(help='Submit files to an assignment.')
+@click.option('--assignmentID', help='Assignment ID.', prompt='\x1b[1mAssignment ID\x1b[0m')
+def submit_assignment(assignmentid):
+    """ Submit an assignment by retrieving its listing and prompting for all the files. """
+
+    my_token = check_for_creds()[1]
+
+    # make first request to get the details of the assignment
+    headers = {'authorization': my_token, 'content-type': 'application/json'}
+    response = requests.request('GET', make_url('api', 'assignments_single', assignmentID=assignmentid),
+                                headers=headers)
+
+    if response.status_code == requests.codes.ok:
+        submission_files = {}
+        for aFile in response.json()['assignment']['files']:
+            submission_files[aFile] = {'content': get_file_from_user(aFile)}
+
+        response = requests.request('POST', make_url('api', 'submissions', assignmentID=assignmentid),
+                                    json={'files': submission_files}, headers=headers)
+        if response.status_code == requests.codes.created:
+            click.echo(click.style('Successfully submitted assignment!', fg='green', bold=True))
+        else:
+            error_print('Failed to complete submission: ', str(response.status_code))
+    else:
+        error_print('Something went wrong: ', str(response.status_code))
+
+
+# add all the commands derived from above methods
+cli.add_command(login)
+cli.add_command(add_user)
+cli.add_command(list_assignments)
+cli.add_command(submit_assignment)
+
+if __name__ == '__main__':
+
+    try:
+
+        cli()
+
+    except requests.exceptions.ConnectionError:
+        click.echo(click.style('\nOops! There was a problem connecting!', fg='red', bold=True))
+        click.echo('    Check your internet connection. Or try again later!\n')
