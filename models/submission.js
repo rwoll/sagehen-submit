@@ -1,96 +1,82 @@
 /**
  * Defines a submission schema.
  *
- * @todo determine appropriate indexes
- * @todo validate that all the reqfiles of the assignment are there
  * @author Ross A. Wollman
  */
 
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 var helpers = require('../db/helpers');
-
-var BareFileSchema = new Schema({
-  name: { type: String, required: true },
-  content: { type: String, required: true }
-});
+var File = require('./file');
 
 var SubSchema = new Schema({
   owner: { type: Schema.Types.ObjectId, required: true, ref: 'User' },
   assignment: { type: Schema.Types.ObjectId, required: true, ref: 'Assignment' },
   timestamp: { type: Date, required: true, default: Date.now, index: true },
-  reqFiles: { type: {}, required: true},
-  notes: { type: String, required: true }
+  files: { type: {}, required: true},
+  notes: String
 });
 
-SubSchema.methods.escapeFilenames = function (cb) {
-  if (!Array.isArray(this.reqFiles) && typeof this.reqFiles === 'object') {
-    // loop through keys and escape them
-    var processed = 0;
-    for (var rawFileName in this.reqFiles) {
-      processed++;
-      if (this.reqFiles.hasOwnProperty(rawFileName)) {
-        var escaped = helpers.escape(rawFileName);
-        if (escaped !== rawFileName) {
-          this.reqFiles[escaped] = this.reqFiles[rawFileName];
-          delete this.reqFiles[rawFileName];
-        }
-      }
-
-      if (processed >= Object.keys(this.reqFiles).length) {
-        return cb();
+/**
+ * See comments in assignment.js
+ */
+SubSchema.virtual('rawfiles')
+  .get(function () {
+    var raw = {};
+    for (var escapedName in this.files) {
+      if (this.files.hasOwnProperty(escapedName)) {
+        raw[this.files[escapedName].filename] = this.files[escapedName];
       }
     }
-  }
+    return raw;
+  })
 
-  return null;
+  .set(function (rawfiles) {
+    if (!this.files) {
+      this.files = {};
+    } else { // start with a clean Object otherwise it would be more like a push
+      this.files = {};
+    }
+
+    if (!Array.isArray(rawfiles) && typeof rawfiles === 'object') {
+      for (var rawFileName in rawfiles) {
+        if (rawfiles.hasOwnProperty(rawFileName)) {
+          var escaped = helpers.escape(rawFileName);
+          this.files[escaped] = new File(rawfiles[rawFileName]);
+          try {
+            this.files[escaped].filename = rawFileName;
+          } catch (err) {} // do nothing since validation will catch it later
+        }
+      }
+    } else { // set the files as an empty dictionary and let vaidator handle later
+      this.files = {};
+    }
+  });
+
+// unescape the filename when returning to a JSON object
+if (!SubSchema.options.toJSON) SubSchema.options.toJSON = {};
+SubSchema.options.toJSON.transform = function (doc, ret, options) {
+  ret.files = helpers.unescapeFileObject(ret.files);
+  return ret;
 };
 
-SubSchema.methods.unescapeFilenames = function (cb) {
-  if (!Array.isArray(this.reqFiles) && typeof this.reqFiles === 'object') {
-    // loop through keys and escape them
-    var processed = 0;
-    for (var escapedFileName in this.reqFiles) {
-      processed++;
-      if (this.reqFiles.hasOwnProperty(escapedFileName)) {
-        var unescaped = helpers.unescape(escapedFileName);
-        if (unescaped !== escapedFileName) {
-          this.reqFiles[unescaped] = this.reqFiles[escapedFileName];
-          delete this.reqFiles[escapedFileName];
+SubSchema.path('files')
+  .validate(function (filesObj) {
+    if (!Array.isArray(filesObj) && typeof filesObj === 'object') {
+      if (Object.keys(filesObj) <= 0) return false;
+      for (var key in filesObj) {
+        var valRes = filesObj[key].validateSync();
+        if (valRes) {
+          return false; // validation error returns a truthy
         }
       }
-
-      if (processed >= Object.keys(this.reqFiles).length) {
-        return cb();
-      }
+      return true; // successfully validated each sub-doc Object
+    } else {
+      return false; // invalid
     }
-  }
+  }, "'files' is invalid");
 
-  return null;
-};
+// @TODO add validation that the submitted files correspond to assignment
 
-SubSchema.pre('save', SubSchema.methods.escapeFilenames);
-
-SubSchema.path('reqFiles').validate(function (value) {
-  if (!Array.isArray(value) && typeof value === 'object') {
-    if (Object.keys(value).length > 0) { // then validate each subdoc
-      var processed = 0;
-      for (var aFileName in value) {
-        if (value.hasOwnProperty(aFileName)) {
-          processed++;
-          if (!value[aFileName].hasOwnProperty('content') || typeof value[aFileName].content !== 'string' || value[aFileName].content == 0) {
-            return false; // validation failed - don't continue validation of other items
-          }
-        }
-
-        if (processed === Object.keys(value).length) { // all objects validated successfuly
-          return true;
-        }
-      }
-    }
-  }
-
-  return false;
-}, "'reqFiles' must contain a valid object of files");
-
+/** Submission Model. */
 module.exports = mongoose.model('Submission', SubSchema);

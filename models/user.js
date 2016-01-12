@@ -22,6 +22,13 @@ var UserSchema = new Schema({
   created: { type: Date,    required: true, default: Date.now }
 });
 
+// don't return the user's password when converting to JSON
+if (!UserSchema.options.toJSON) UserSchema.options.toJSON = {};
+UserSchema.options.toJSON.transform = function (doc, ret, options) {
+  delete ret.password;
+  return ret;
+};
+
 // ========== Mongoose Plugins =================================================
 UserSchema.plugin(uValidator);
 UserSchema.plugin(mBcrypt, {

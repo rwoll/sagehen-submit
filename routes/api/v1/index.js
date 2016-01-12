@@ -13,10 +13,10 @@ var users = require('./users');
 var assignments = require('./assignments');
 
 // ========== ROUTING HANDLERS =================================================
-router.use('/users', roleLimit(['PROF']), users);
+router.use('/users', roleLimit(['PROF']), users); // only allow PROFS access
 router.use('/assignments', assignments);
 
-// ========== VALIDATION ERROR HANDLER =========================================
+// ========== MID-LEVEL VALIDATION ERROR HANDLER ===============================
 router.use(function (err, req, res, next) {
   if (err.name === 'ValidationError') {
     return res.status(400).json({error: { status: 400, message: err.errors }});

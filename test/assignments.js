@@ -1,6 +1,9 @@
 /**
  * Unit tests for the assignments endpoint.
  *
+ * These are very highlevel tests and do NOT cover all endpoints currently, nor
+ * do they test complete database persistence. :(
+ *
  * @author Ross A. Wollman
  */
 var ENDPOINT = '/api/v1/assignments';
@@ -14,7 +17,7 @@ var validAssignment =
 {
   title: 'Silver Dollar Coin',
   duedate: '1453006399000',
-  reqFiles: {
+  files: {
     'test.py': {name: 'test', lang: 'javascript', type: 'plain'},
     'test2.py': {name: 'test', lang: 'javascript', type: 'plain'}
   }
@@ -24,13 +27,13 @@ var invalidAssignment =
 {
   title: 'Silver Dollar Coin',
   duedate: '1453006399000',
-  reqFiles: ''
+  reqFiles: {}
 };
 
 var validSubmission =
 {
   notes: 'a really valid submission',
-  reqFiles: {
+  files: {
     'test.py': { content: 'ad' },
     'test2.py': { content: 'ad3' }
   }
@@ -98,7 +101,7 @@ describe('Assignment Endpoint', function () {
         .type('json')
         .send(validAssignment)
         .expect('Content-Type', /json/)
-        .expect(200)
+        .expect(201)
         .end(function (err, res) {
           res.body.should.have.property('assignment');
           done();
@@ -119,7 +122,7 @@ describe('Assignment Endpoint', function () {
         });
     });
 
-    it('fails to create an assignment without reqFiles', function (done) {
+    it('fails to create an assignment without files', function (done) {
       request(server)
         .post('/api/v1/assignments')
         .set('Authorization', tokens.prof)
@@ -181,7 +184,7 @@ describe('Assignment Endpoint', function () {
             .set('Authorization', tokens.stu)
             .type('json')
             .send(validSubmission)
-            .expect(200)
+            .expect(201)
             .end(function (err, res) {
               if (err) throw err;
               res.body.should.have.property('submission');

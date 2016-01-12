@@ -3,15 +3,16 @@
  * Looks for JWT token in the `authorization` header.
  *
  * @author Ross A. Wollman
+ * @module middleware/authCheck
  */
 
 var jwt = require('jsonwebtoken');
 var config = require('../config');
 
 /**
- * Middleware that checks if user is allowed to access an endpoint by JWT role
- * lookup. If successful, calls next function and sets req.user object.
- *
+ * Middleware that checks checks for a valid Authorization header and sets the
+ * req.user object with key details.
+ * @return {Function} Standard express style middleware.
  */
 function authRequired () {
   return function (req, res, next) {
@@ -48,4 +49,5 @@ function authRequired () {
   };
 }
 
+/** Authentication middleware. */
 module.exports = authRequired;

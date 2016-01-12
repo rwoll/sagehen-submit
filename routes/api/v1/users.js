@@ -1,13 +1,12 @@
 /**
  * Handle user related actions including adding users and view profiles.
  *
- *
  * @author Ross A. Wollman
  */
 
 var express = require('express');
 var router = express.Router();
-var User = require('../../../models/user'); /** @REVIEW discuss model location */
+var User = require('../../../models/user');
 
 router.post('/', function (req, res, next) {
   var user = new User({
@@ -27,10 +26,10 @@ router.post('/', function (req, res, next) {
         return next(err);
       }
     } else {
-      /** @TODO prevent password field from being returned */
-      return res.json({ user: user });
+      return res.status(201).json({ user: user });
     }
   });
 });
 
+/** User router. */
 module.exports = router;

@@ -3,118 +3,276 @@ Sagehen Submit
 
 *A computer science centric submission portal.*
 
-## Quickstart
+## About
 
-1. Clone this repo.
-2. Install [MongoDB](https://docs.mongodb.org/manual/installation/).
-3. Install node dependencies:
-   ```bash
-   cd /path/to/clone/location
-   npm install
-   ```
-4. Start a MongoDB instance: `mongod`
-5. Seed the user database with `node setup`
-   > This will create a user with the following credentials as a `PROF` role:  
-   > ```
-   > email: prof@test
-   > password: testpass
-   > ```
-
-6. Start up the app: `npm start`
-7. Visit http://localhost:3000 to see if its up and running.
-8. Test various endpoints through `curl` or apps like [Postman](https://www.getpostman.com/).
-
+The goal is to create a submission service for computer science courses powered
+by a REST API allowing for easy interfacing with command line clients,
+web-clients, etc.
 
 ## API Documentation
 
-> **The following documentation may not refer to currently implemented
-> functionality, but rather the desired functionality in the future.**
+> All requests must supply a JWT token in the header, otherwise you will receive
+> an error status code of `401`!
 
-### Assignments
-*Resource contains the details of a homework or project assignment like the
-required files, duedate, and a list of submissions.*
+- [List Assignments](#list-assignments)
+- [Create a New Assignment](#create-a-new-assignment)
+- [Get an Individual Assignment](#get-an-individual-assignment)
+- [Get a List of Submissions](#get-a-list-of-submissions)
+- [Submit an Assignment](#submit-an-assignment)
 
-| Usage                                 | Method | Endpoint                    |
-|---------------------------------------|--------|-----------------------------|
-| Get a list of all assignments.        |`GET`   |`/assignments`               |
-| Create a new assignment.              |`POST`  |`/assignments`               |
-| Get an individual assignment          |`GET`   |`/assignments/{aID}`         |
-| Delete an assignment.                 |`DELETE`|`/assignments/{aID}`         |
-| Update an assignment.                 |`PUT`   |`/assignments/{aID}`         |
+### List Assignments
 
-#### Assignment Description
-- `_id`: unique assignment identifier
-- `title`: name of the assignment
-- `duedate`: due date of the assignment
-- `reqFiles`: list of required files
-- `submissions`: list of submissions (rather, references to a submission via an `_id`)
+Lists the authenticated user's assignments.
 
-### Submissions
-*A resource that contains a student's solution/code to an assignment*
-
-| Usage                                 | Method | Endpoint                    |
-|---------------------------------------|--------|-----------------------------|
-| Get a list of submissions.            |`GET`   |`/assignments/{aID}/submissions`|
-| Make an original submission.          |`POST`  |`/assignments/{aID}/submissions`|
-| Get an individual submission.         |`GET`   |`/assignments/{aID}/submissions/{sID}`|
-| Delete an individual submission.      |`DELETE`|`/assignments/{aID}/submissions/{sID}`|
-| Update an individual submission.      |`PUT`   |`/assignments/{aID}/submissions/{sID}`|
-
-#### Submission Description
-- `_id`: unique identifier
-- `owner`: owner/original submitter (reference to a User's `_id`)
-- `collaborators`: list of collaborators as User's `_id`s
-- `assignment`: reference to an Assignment's `_id` that this submission corresponds to
-- `timestamp`: original submission time or time of last revision
-- `files`: list of File resources
-- `notes`: student notes on their submission
-
-### Users
-*A resource that represents either a professor, teaching assistant, or student.*
-
-| Usage                                 | Method | Endpoint                    |
-|---------------------------------------|--------|-----------------------------|
-| Get a list of all users.              |`GET`   |`/users`                     |
-| Create a new user.                    |`POST`  |`/users`                     |
-| Get a user profile.                   |`GET`   |`/users/{uID}`               |
-| Update a user profile.                |`PUT`   |`/users/{uID}`               |
-| Mark student as enrolled in the class.|`POST`  |`/users/{uID}/enroll`        |
-| Get a list of submissions by a user.  |`GET`   |`/users/{uID}/submissions`   |
-| Get a list of assignments with submission status for a user.|`GET`|`/users/{uID}/assignments`|
-
-#### User Description
-- `_id`: unique identifier
-- `email`: primary email address
-- `password`: hash of password
-- `verified`: status of User's primary email address
-- `active`: status of User in the course
-- `created`: date of User added
-- `role`: Users role (`PROF || TA || STU`)
-
-## Auth Tokens
-
-All API calls will require an `AUTH` token which will be used to authorize different
-actions.
-
-### Getting an Auth token
-
-##### Example Request:
-
-```bash
-curl --request POST \
-  --url http://localhost:3000/auth \
-  --header 'cache-control: no-cache' \
-  --header 'content-type: application/x-www-form-urlencoded' \
-  --data 'email=prof%40test&password=testpass'
+```
+GET /assignments
 ```
 
-##### Example Response
+#### Request
 
-```bash
+```
+GET /api/v1/assignments HTTP/1.1
+Host: localhost:3000
+Authorization: "YOUR_TOKEN"
+```
+
+#### Response
+
+```
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+Content-Length: 235
+Date: Mon, 11 Jan 2016 21:46:00 GMT
+```
+
+```json
 {
-    "token": "<YOUR-JWT-TOKEN>"
+  "assignments": [
+    {
+      "_id": "56941450f0c266c44058ef81",
+      "title": "Hello World Assignment",
+      "__v": 0,
+      "duedate": "2016-01-11T20:32:12.000Z"
+    },
+    {
+      "_id": "5694148ff0c266c44058ef84",
+      "title": "Goodnight Moon",
+      "__v": 0,
+      "duedate": "2016-01-20T20:32:12.000Z"
+    }
+  ]
 }
 ```
 
-The returned token can then be used in subsequent API calls. It will have an
-expiry time, so it will need to be refreshed.
+### Create a New Assignment
+
+Create a new assignment.
+
+```
+POST /assignments
+```
+
+> Requires `PROF` status.
+
+#### Request
+
+```
+POST /api/v1/assignments HTTP/1.1
+Host: localhost:3000
+Authorization: "YOUR_TOKEN"
+Content-Type: application/json
+```
+
+```json
+{
+    "title": "Hello World Assignment",
+    "duedate": "Mon Jan 11 15:32:12 EST 2016",
+    "files": {
+        "helloworld.java": {
+            "type": "text/x-java-source",
+            "lang": "java"
+        },
+
+        "cecil.java": {
+            "type": "text/x-java-source",
+            "lang": "java"
+        }
+
+    }
+}
+```
+
+#### Response
+
+```
+HTTP/1.1 201 Created
+Content-Type: application/json; charset=utf-8
+Content-Length: 375
+Date: Mon, 11 Jan 2016 20:39:47 GMT
+```
+
+```json
+{
+    "assignment": {
+        "__v": 0,
+        "title": "Hello World Assignment",
+        "files": {
+            "cecil.java": {
+                "filename": "cecil.java",
+                "type": "text/x-java-source",
+                "lang": "java",
+                "_id": "5694121cf0c266c44058ef7a"
+            },
+            "helloworld.java": {
+                "filename": "helloworld.java",
+                "type": "text/x-java-source",
+                "lang": "java",
+                "_id": "5694121cf0c266c44058ef79"
+            }
+        },
+        "_id": "5694121cf0c266c44058ef78",
+        "duedate": "2016-01-11T20:32:12.000Z"
+    }
+}
+```
+
+### Get an Individual Assignment
+
+Get an individual assignment.
+
+```
+GET /assignments/{assignmentID}
+```
+
+### Get a List of Submissions
+
+Gets a list of submissions for an assignment.
+
+```
+GET /assignments/{assignmentID}/submissions
+```
+
+> A full list will be return if role is `PROF` otherwise it will be a list for
+> the authenticated user.
+
+### Submit an Assignment
+
+Make a new submission for an assignment.
+
+```
+POST /assignments/{assignmentID}/submissions
+```
+
+> Requires role `STU`.
+
+#### Request
+
+```
+POST /api/v1/assignments/{assignmentID}/submissions HTTP/1.1
+Host: localhost:3000
+Authorization: "YOUR_TOKEN"
+Content-Type: application/json
+```
+
+```json
+{
+  "notes" : "I tried my best!",
+  "files": {
+    "test.py":
+        {
+            "content": "# some really awesome python scripting"
+        },
+
+    "test2.py":
+        {
+          "content": "# some redundant scripting"
+        }
+  }
+}
+```
+
+#### Response
+
+```
+HTTP/1.1 201 Created
+Content-Type: application/json; charset=utf-8
+Content-Length: 541
+Date: Tue, 12 Jan 2016 01:32:20 GMT
+```
+
+```json
+{
+  "submission": {
+    "__v": 0,
+    "owner": "56944d554221097a4303f117",
+    "assignment": "56944d7a4221097a4303f118",
+    "files": {
+      "test2.py": {
+        "filename": "test2.py",
+        "content": "# some redundant scripting",
+        "_id": "56945a8332fac5db43a0193a"
+      },
+      "test.py": {
+        "filename": "test.py",
+        "content": "# some really awesome python scripting",
+        "_id": "56945a8332fac5db43a01939"
+      }
+    },
+    "notes": "I tried my best!",
+    "_id": "56945a8332fac5db43a01938",
+    "timestamp": "2016-01-12T01:44:35.671Z"
+  }
+}
+```
+
+### Get a Submission
+
+Gets a submission for an assignment.
+
+```
+GET /assignments/{assignmentID}/submissions/{submissionID}
+```
+
+> If the authenticated user has role `STU`, they will get an error if they try
+> to access a submission that they do not own or are not a collaborator on.
+
+#### Request
+
+```
+GET /api/v1/assignments/56944d7a4221097a4303f118/submissions/56945e8d41ae3bf94343b468 HTTP/1.1
+Host: localhost:3000
+Authorization: "YOUR_AUTH_TOKEN"
+```
+
+### Response
+
+```
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+Content-Length: 432
+```
+
+```json
+{
+  "submission": {
+    "_id": "56945e8d41ae3bf94343b468",
+    "owner": "56944d554221097a4303f117",
+    "assignment": "56944d7a4221097a4303f118",
+    "files": {
+      "test.py": {
+        "_id": "56945e8d41ae3bf94343b469",
+        "content": "# some really awesome python scripting",
+        "filename": "test.py"
+      },
+      "test2.py": {
+        "_id": "56945e8d41ae3bf94343b46a",
+        "content": "# some redundent scripting",
+        "filename": "test2.py"
+      }
+    },
+    "notes": "I tried my best!",
+    "__v": 0,
+    "timestamp": "2016-01-12T02:01:49.634Z"
+  }
+}
+```

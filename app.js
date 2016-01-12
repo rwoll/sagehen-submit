@@ -5,14 +5,12 @@
  * @author Ross A. Wollman
  */
 
-var config = require('./config');
 var express = require('express');
-var path = require('path');
-// var logger       = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
-var db = require('./db');
 var authCheck = require('./middleware/authCheck');
+
+require('./db'); // initializes the connection to the db
 
 // ========== ROUTERS ==========================================================
 var routes = require('./routes/index');
@@ -24,7 +22,6 @@ var app = express();
 
 // ========== PRE-ROUTER MIDDLEWARE ============================================
 /** @REVIEW ensure all of these express generated middleware are necessary. */
-// app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());

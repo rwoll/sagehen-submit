@@ -1,4 +1,0 @@
-- 'disconnected' event handler __TODOs__ [db/index.js](db/index.js)
-- discuss model location __REVIEWs__ [routes/api/v1/users.js](routes/api/v1/users.js)
-- ensure all of these express generated middleware are necessary. __REVIEWs__ [app.js](app.js)
-- prevent password field from being returned __TODOs__ [routes/api/v1/users.js](routes/api/v1/users.js)
