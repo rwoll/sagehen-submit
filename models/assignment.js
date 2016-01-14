@@ -20,10 +20,16 @@ var nextWeek = function () {
   return new Date(today.getTime() + (1000 * 60 * 60 * 24 * 7));
 };
 
+var SubRecord = new Schema({
+  owner: { type: Schema.Types.ObjectId, require: true, ref: 'User' },
+  submission: { type: Schema.Types.ObjectId, require: true, ref: 'Submission'}
+}, { _id: false });
+
 var AsgtSchema = new Schema({
   title: { type: String, required: true },
   duedate: { type: Date, required: true, default: nextWeek},
-  files: { type: {}, required: true }
+  files: { type: {}, required: true },
+  submissions: { type: [SubRecord], default: []}
 });
 
 /**
