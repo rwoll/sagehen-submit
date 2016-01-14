@@ -9,6 +9,67 @@ The goal is to create a submission service for computer science courses powered
 by a REST API allowing for easy interfacing with command line clients,
 web-clients, etc.
 
+## Getting Started
+
+### Server and MongoDB Install
+
+1. Install [MongoDB](https://docs.mongodb.org/manual/installation/).
+2. Install [NodeJs](https://nodejs.org/en/download/).
+3. Clone this repository and enter the working directory:
+   ```
+   git clone https://github.com/rwoll/sagehen-submit.git && cd sagehen-submit
+   ```
+4. Seed the database and start the server:
+   ```
+   node ./setup && npm start
+   ```
+
+   > This well seed MongoDB with the following credentials:
+   > ```
+   > username: prof@test
+   > password: testpass
+   > ```
+
+5. You can interact with the API on `http://localhost:3000`.
+
+### Installing the CLI tool
+
+> The CLI tool is written in Python, so install that if it is not already on
+> your device. (If you're a Mac user, the machines come pre-installed with
+> Python 2.7, but it is advisable that you run it in a python `virtualenv`.)
+
+1. Assuming you are in the repos base directory, install the python dependencies:
+   ```
+   pip install -r cli/requirements.txt
+   ```
+2. Make the `cecil` script executable:
+   ```
+   chmod +x ./cli/cecil
+   ```
+3. Run `./cli/cecil --help` to get a list of commands available and begin using
+   the tool.
+
+> To use the script's methods, make sure you login: `./cli/cecil login`. It will
+> prompt you for your credentials and store an API token that will last for
+> **60 minutes**. (After that you will get an error, so force a refresh by
+> running log in again. In the future a method will be added to prompt you to
+> log in for new token if the current one is expired.)
+
+## Tests
+
+To run the tests on the API (assuming you have `mocha` globally installed), run:
+```
+npm test
+```
+
+> It should be noted that the included tests are very high-level and would
+> appreciate some help and additions. Most notably, the internal methods of the
+> node server are not being tested individually. The tests simply check see that
+> API calls return the correct information, but they don't necessarily check
+> that all the information is persisted in MongoDB (well, to some extent they do).
+>
+> If you would like to contribute test cases it would be very helpful!
+
 ## API Documentation
 
 > All requests must supply a JWT token in the header, otherwise you will receive
