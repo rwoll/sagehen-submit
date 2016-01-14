@@ -1,30 +1,61 @@
 #!/usr/bin/env python
 
-# A CLI wrapper for the API
-# This is a proof of concept and has not been tested!
-# @author Ross A. Wollman
+################################################################################
+# A CLI wrapper for the API                                                    #
+#                                                                              #
+# This is a proof of concept and has not been thoroughly tested. By default,   #
+# it will provide you with HTTP error codes for requests, but will NOT give    #
+# the full error message provided by the API. Sorry!                           #
+#                                                                              #
+# @author Ross A. Wollman                                                      #
+################################################################################
+
 
 import click
-import getpass
 import requests
 import os
+import jwt
+import pygments
 
+from pygments.formatters import Terminal256Formatter
+from pygments.lexers import get_lexer_for_filename
+from click import echo, style, confirm
 from datetime import datetime
 
 # Common endpoints for the application
-ENDPOINTS = {
-    'base': 'http://localhost:3000',
-    'others': {
-        'auth': '/auth',
-        'api': {
-            'assignments': '/api/v1/assignments',
-            'assignments_single': '/api/v1/assignments/assignmentID',
-            'submissions': '/api/v1/assignments/assignmentID/submissions',
-            'submissions_single': '/api/v1/assignments/assignmentID/submissions/submissionID',
-            'users': '/api/v1/users'
-        }
+ENDPOINTS = {'base': 'http://localhost:3000', 'others': {
+    'auth': '/auth',
+    'api': {
+        'assignments': '/api/v1/assignments',
+        'assignments_single': '/api/v1/assignments/assignmentID',
+        'submissions': '/api/v1/assignments/assignmentID/submissions',
+        'submissions_single': '/api/v1/assignments/assignmentID/submissions/submissionID',
+        'users': '/api/v1/users'
     }
-}
+}}
+
+
+def bold(text, **kwargs):
+    """ Bold helper. """
+    return style(text, bold=True, **kwargs)
+
+
+def prompt(text, **kwargs):
+    return click.prompt(bold(text), **kwargs)
+
+
+def date_filter(a_date):
+    if datetime.now() > a_date:
+        return bold(a_date.strftime('%D'), fg='red')
+    else:
+        return bold(a_date.strftime('%D'))
+
+
+def status_filter(submissions):
+    if len(submissions) > 0:
+        return bold('SUBMITTED', fg='green')
+    else:
+        return bold('MISSING', fg='red')
 
 
 # Overall CLI command group
@@ -34,21 +65,16 @@ def cli():
 
 
 def error_print(text, code):
-    """ Generic error printer.
-
-    :param text: error message
-    :param code: status code of error
-    """
-    click.echo(click.style(text, fg='red', bold=True), nl=False)
-    click.echo(click.style(code, bold=True))
+    """ Generic error printer. """
+    echo(bold(text, fg='red'), nl=False)
+    echo(bold(code))
 
 
-def make_url(*args, **kwargs):
+def url(*args, **kwargs):
     """ Compose a URL for a call to the API.
 
     This has NO exception handling, therefore it is VERY fragile!
     """
-    url = ENDPOINTS['base']
     next_path = ENDPOINTS['others']
     for arg in args:
         next_path = next_path[arg]
@@ -56,26 +82,26 @@ def make_url(*args, **kwargs):
     for key, value in kwargs.iteritems():
         next_path = next_path.replace(str(key), str(value))
 
-    return url + next_path
+    return ENDPOINTS['base'] + next_path
 
 
 def get_token():
     """ Prompt a user for their credentials. """
-    click.echo(click.style('Please login with your credentials.', fg='yellow', bold=True))
+    echo(bold('Please login with your credentials.', fg='yellow'))
 
     attempts = 0
     while attempts < 3:
-        username = click.prompt(click.style('Username', bold=True))
-        password = click.prompt(click.style('Password', bold=True), hide_input=True)
+        username = prompt('Username')
+        password = prompt('Password', hide_input=True)
         creds = {'email': username, 'password': password}
-        auth_resp = requests.post(make_url('auth'), json=creds)
+        auth_resp = requests.post(url('auth'), json=creds)
 
         if auth_resp.status_code == requests.codes.ok:
             return username, auth_resp.json()['token']
         else:
-            click.echo(click.style('Bad combination. Please try again!', bold=True, fg='red'))
+            echo(bold('Bad combination. Please try again!', fg='red'))
             attempts += 1
-            if not click.confirm(click.style('Try again?', fg='blue', bold=True)):
+            if not confirm(bold('Try again?', fg='blue')):
                 break
 
     return None, None
@@ -94,14 +120,24 @@ def check_for_creds(force_refresh=False):
         username, token = get_token()
         if username and token:
             with open(cred_file, 'w') as creds:
-                creds.write('%s\n%s' % (username, token))
-                click.echo('Hello, ', nl=False)
-                click.echo(click.style(username, bold=True), nl=False)
-                click.echo('!')
-                return (username, token)
+                creds.write(token)
+                echo('Hello, %s!' % (bold(username)))
+                return username, token
 
     with open(cred_file, 'r') as creds:
-        return creds.readline(), creds.readline()
+        token = creds.readline()
+        decoded = jwt.decode(token, verify=False)
+        return decoded['email'], token
+
+
+def request_with_token(method, endpoint, **kwargs):
+    # get token or launch the token acquisition flow and make header
+    headers = {
+        'authorization': check_for_creds()[1],
+        'content-type': 'application/json'
+    }
+
+    return requests.request(method, endpoint, headers=headers, **kwargs)
 
 
 @click.command(help='Force a new login to the service.')
@@ -111,21 +147,21 @@ def login():
 
 @click.command(help='Add a new user to the system.')
 @click.option('--new_username', help='New users username.',
-              prompt='\x1b[1mNew Username\x1b[0m')
-@click.option('--new_password', help='New user\'s password.', prompt='\x1b[1mNew Password\x1b[0m', hide_input=True)
-@click.option('--new_role', help='New user\'s role.', prompt='\x1b[1mNew Role\x1b[0m',
+              prompt=bold('New Username'))
+@click.option('--new_password', help='New user\'s password.',
+              prompt=bold('New Password'), hide_input=True)
+@click.option('--new_role', help='New user\'s role.', prompt=bold('New Role'),
               type=click.Choice(['STU', 'PROF', 'TA']))
 def add_user(new_username, new_password, new_role):
     """ Add a user to the system. """
 
-    my_token = check_for_creds()[1]
-    payload = {'email': new_username, 'password': new_password, 'role': new_role}
-    headers = {'authorization': my_token, 'content-type': 'application/json'}
-    response = requests.request('POST', make_url('api', 'users'), json=payload, headers=headers)
+    payload = {'email': new_username, 'password': new_password,
+               'role': new_role}
+    response = request_with_token('POST', url('api', 'users'), json=payload)
 
     if response.status_code == requests.codes.created:
-        click.echo(click.style('Successfully added new user: ', fg='green', bold=True), nl=False)
-        click.echo(click.style(response.json()['user']['email'], bold=True))
+        echo(bold('Successfully added new user: ', fg='green'), nl=False)
+        echo(bold(response.json()['user']['email']))
     else:
         error_print('Failed to create user: ', str(response.status_code))
 
@@ -133,24 +169,27 @@ def add_user(new_username, new_password, new_role):
 @click.command(help='List assignments.')
 def list_assignments():
     """ Get a list of assignments """
-    my_username, my_token = check_for_creds()
-    headers = {'authorization': my_token, 'content-type': 'application/json'}
-    response = requests.request('GET', make_url('api', 'assignments'), headers=headers)
-    click.echo(click.style('%-40s | %-10s | %s' % ('Assignment', 'Duedate', 'ID'), bold=True))
-    click.echo('-' * 80)
+    response = request_with_token('GET', url('api', 'assignments'))
+    echo(bold('%-30s | %-8s | %-24s | %-9s' % (
+    'Assignment', 'Duedate', 'ID', 'Status')))
+    echo('-' * 80)
     if response.status_code == requests.codes.ok:
         for assignment in response.json()['assignments']:
-            the_date = datetime.strptime(assignment['duedate'], '%Y-%m-%dT%H:%M:%S.%fZ')
-            click.echo('%-40s | %-10s | %s' % (assignment['title'], the_date.strftime('%D'), assignment['_id']))
+            the_date = datetime.strptime(assignment['duedate'],
+                                         '%Y-%m-%dT%H:%M:%S.%fZ')
+            echo('%-30s | %-15s | %-20s | %-15s' % (
+                assignment['title'], date_filter(the_date), assignment['_id'],
+                status_filter(assignment['submissions'])))
 
     else:
         error_print('Something went wrong: ', str(response.status_code))
 
 
 def get_file_from_user(file_name):
-    """ Prompt a user for a file and read into memory. """
-    prompt_words = 'Path to ' + click.style(file_name, bold=True)
-    file_path = click.prompt(prompt_words).strip()
+    """ Prompt a user for a file and read into memory.
+    :param file_name: file path to the needed file
+    """
+    file_path = prompt('Path to %s' % file_name).strip()
     if os.path.isfile(file_path):
         with open(file_path, 'r') as file_data:
             return file_data.read()
@@ -159,30 +198,137 @@ def get_file_from_user(file_name):
 
 
 @click.command(help='Submit files to an assignment.')
-@click.option('--assignmentID', help='Assignment ID.', prompt='\x1b[1mAssignment ID\x1b[0m')
+@click.option('--assignmentID', help='Assignment ID.',
+              prompt=bold('AssignmentID'))
 def submit_assignment(assignmentid):
-    """ Submit an assignment by retrieving its listing and prompting for all the files. """
+    """ Submit an assignment by retrieving its listing and prompting for all the
+    files.
+    """
 
-    my_token = check_for_creds()[1]
-
-    # make first request to get the details of the assignment
-    headers = {'authorization': my_token, 'content-type': 'application/json'}
-    response = requests.request('GET', make_url('api', 'assignments_single', assignmentID=assignmentid),
-                                headers=headers)
-
+    response = request_with_token('GET', url('api', 'assignments_single',
+                                             assignmentID=assignmentid))
     if response.status_code == requests.codes.ok:
         submission_files = {}
         for aFile in response.json()['assignment']['files']:
             submission_files[aFile] = {'content': get_file_from_user(aFile)}
 
-        response = requests.request('POST', make_url('api', 'submissions', assignmentID=assignmentid),
-                                    json={'files': submission_files}, headers=headers)
+        response = request_with_token('POST', url('api', 'submissions',
+                                                  assignmentID=assignmentid),
+                                      json={'files': submission_files})
         if response.status_code == requests.codes.created:
-            click.echo(click.style('Successfully submitted assignment!', fg='green', bold=True))
+            echo(bold('Successfully submitted assignment!', fg='green'))
         else:
-            error_print('Failed to complete submission: ', str(response.status_code))
+            error_print('Failed to complete submission: ',
+                        str(response.status_code))
     else:
         error_print('Something went wrong: ', str(response.status_code))
+
+
+@click.command(help='Post a new assignment.')
+def new_assignment():
+    echo(
+        bold('Please follow the prompts to create an assignment.', fg='yellow'))
+    title = prompt('Title')
+    duedate = prompt('Duedate')
+    add_more = True
+    files = {}
+    echo(bold('Add Required Files', fg='yellow'))
+    while add_more:
+        filename = prompt('Filename')
+        files[filename] = {}
+        files[filename]['lang'] = prompt('Language')
+        files[filename]['type'] = prompt('Mimetype')
+        add_more = confirm(bold('Add more files?', fg='yellow'))
+
+    echo(bold('Please confirm the following details:', fg='yellow'))
+    echo('%s: %s' % (bold('Title'), title))
+    echo('%s: %s' % (bold('Duedate'), duedate))
+
+    for a_file, info in files.iteritems():
+        echo('    %s: %s' % (bold('File'), a_file))
+        echo('        %s: %s' % (bold('Language'), info['lang']))
+        echo('        %s: %s' % (bold('Type'), info['type']))
+
+    if confirm(bold('Confirm posting assignment?', fg='red')):
+        payload = {
+            'files': files,
+            'title': title,
+            'duedate': duedate
+        }
+        response = request_with_token('POST', url('api', 'assignments'),
+                                      json=payload)
+        if response.status_code == requests.codes.created:
+            echo(bold('Successfully posted assignment!', fg='green'))
+        else:
+            error_print('Failed to complete submission: ',
+                        str(response.status_code))
+
+
+@click.command(help='Gets an individual submittssion.')
+@click.option('--assignmentID', help='Assignment ID.',
+              prompt=bold('AssignmentID'))
+@click.option('--submissionID', help='Submission ID.',
+              prompt=bold('SubmissionID'))
+def get_submission(assignmentid, submissionid):
+    response = request_with_token('GET', url('api', 'submissions_single',
+                                             assignmentID=assignmentid,
+                                             submissionID=submissionid))
+
+    # TODO add exception handling if no lexer exists, simply output plain text
+    if response.status_code == requests.codes.ok:
+        submission = ''
+        for key, value in response.json()['submission']['files'].iteritems():
+            submission += bold('%s\n%s\n%s\n' % ('=' * 80, key, '=' * 80))
+            submission += pygments.highlight(value['content'],
+                                             get_lexer_for_filename(key),
+                                             Terminal256Formatter())
+        click.echo_via_pager(submission)
+    else:
+        error_print('Failed to retrieve: ', str(response.status_code))
+
+
+@click.command(help='Lists the currently logged in user.')
+def whoami():
+    decoded = jwt.decode(check_for_creds()[1], verify=False)
+    echo('You are logged in as %s with status %s.' % (
+    bold(decoded['email']), bold(decoded['role'])))
+
+
+@click.command(help='About this project')
+def about():
+    echo(bold(
+            '''
+                ____              __             ____     __         _ __
+              / _____ ____ ____ / / ___ ___    / ____ __/ /  __ _  (_/ /_
+             _\ \/ _ `/ _ `/ -_/ _ / -_/ _ \  _\ \/ // / _ \/  ' \/ / __/
+            /___/\_,_/\_, /\__/_//_\__/_//_/ /___/\_,_/_.__/_/_/_/_/\__/
+                     /___/
+
+            Chirp! Chirp!
+            '''
+            , fg='yellow'))
+
+    echo(
+            '''
+            Hello,
+
+            This is a commandline interface (CLI) for the sagehen-submit REST
+            API. It's meant to make collecting student assignments easier and
+            help students, TAs, and professors leverage data about their
+            assignments.
+
+            In reality, it's just a proof of concept, so if you have
+            suggestions, comments, or would like to contribute,
+            visit the repository on Github:
+
+            \x1b[1;4mhttps://github.com/rwoll/sagehen-submit\x1b[0m
+
+            Thanks,
+            @rwoll
+
+            ----
+            ASCII Art generated at \x1b[4mhttp://patorjk.com/\x1b[0m
+            ''')
 
 
 # add all the commands derived from above methods
@@ -190,6 +336,10 @@ cli.add_command(login)
 cli.add_command(add_user)
 cli.add_command(list_assignments)
 cli.add_command(submit_assignment)
+cli.add_command(new_assignment)
+cli.add_command(get_submission)
+cli.add_command(whoami)
+cli.add_command(about)
 
 if __name__ == '__main__':
 
@@ -198,5 +348,5 @@ if __name__ == '__main__':
         cli()
 
     except requests.exceptions.ConnectionError:
-        click.echo(click.style('\nOops! There was a problem connecting!', fg='red', bold=True))
-        click.echo('    Check your internet connection. Or try again later!\n')
+        echo(bold('\nOops! There was a problem connecting!', fg='red'))
+        echo('    Check your internet connection. Or try again later!\n')
