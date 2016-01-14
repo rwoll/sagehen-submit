@@ -39,6 +39,17 @@ web-clients, etc.
 > your device. (If you're a Mac user, the machines come pre-installed with
 > Python 2.7, but it is advisable that you run it in a python `virtualenv`.)
 
+![About](screenshots/about.png)
+
+> More screenshots:
+> - `cecil` [`login`](screenshots/login.png)
+> - `cecil` [`list_assignments`](screenshots/list_assignments.png)
+> - `cecil` [`new_assignment`](screenshots/new_assignment.png)
+> - `cecil` [`new_submission`](screenshots/new_submission.png)
+> - `cecil` [`submit_assignment`](screenshots/submit_assignment.png)
+> - `cecil` [`get_submission`](screenshots/get_submission.png)
+> - `cecil` [`--help`](screenshots/help.png)
+
 1. Assuming you are in the repos base directory, install the python dependencies:
    ```
    pip install -r cli/requirements.txt
