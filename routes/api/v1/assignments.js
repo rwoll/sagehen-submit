@@ -9,6 +9,7 @@ var router = express.Router();
 var Assignment = require('../../../models/assignment');
 var Submission = require('../../../models/submission');
 var limit = require('../../../middleware/rolelimit');
+var mongoose = require('mongoose');
 
 // ========== Route Handlers ===================================================
 
@@ -20,8 +21,23 @@ var limit = require('../../../middleware/rolelimit');
  * @return {Object}        Response object with converted json.
  */
 var listAssignments = function (req, res, next) {
-  Assignment.find().lean().select('-files').exec(function (err, assignments) {
-    if (err) return next(err);
+  Assignment.aggregate([
+    {
+      $project: {
+        title: 1,
+        duedate: 1,
+        _id: 1,
+        submissions: {
+          $filter: {
+            input: '$submissions',
+            as: 'submission',
+            cond: { $eq: ['$$submission.owner', mongoose.Types.ObjectId(req.user._id)]}
+          }
+        }
+      }
+    }
+  ]).exec(function (err, assignments) {
+    if (err) throw err;
     return res.json({ 'assignments': assignments });
   });
 };
@@ -76,7 +92,14 @@ var addSubmission = function (req, res, next) {
     notes: req.body.notes
   }).save(function (err, sub) {
     if (err) return next(err);
-    return res.status(201).json({ submission: sub });
+    // push to submission array for the respective assignment
+    Assignment.update({ _id: sub.assignment }, { $addToSet: { submissions: {
+          owner: mongoose.Types.ObjectId(req.user._id),
+          submission: sub._id
+    }}}, function (err) {
+      if (err) throw err;
+      return res.status(201).json({ submission: sub });
+    });
   });
 };
 
