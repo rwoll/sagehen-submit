@@ -1,5 +1,6 @@
 Sagehen Submit
 ==============
+![Travis](https://travis-ci.org/rwoll/sagehen-submit.svg?branch=master)
 
 *A computer science centric submission portal.*
 
@@ -69,6 +70,13 @@ npm test
 > that all the information is persisted in MongoDB (well, to some extent they do).
 >
 > If you would like to contribute test cases it would be very helpful!
+
+## Contributions
+
+Contributions in the form of pull requests, comments, or suggestions will always
+be appreciated. This project is more of a proof of concept, so the code is not
+really production ready :frowning:, but any help getting it closer to that
+would be great! :smile:
 
 ## API Documentation
 
